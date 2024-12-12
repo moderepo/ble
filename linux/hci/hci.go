@@ -411,7 +411,9 @@ func (h *HCI) sktLoop() {
 				_ = logger.Error("skt: %v", err)
 			} else {
 				log.Printf("skt: %v", err)
-				continue
+				h.Close()
+				h.Init()
+				return
 			}
 		}
 	}
