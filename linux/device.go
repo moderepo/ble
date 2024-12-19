@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"time"
 
 	"github.com/go-ble/ble"
 	"github.com/go-ble/ble/linux/att"
@@ -97,7 +98,9 @@ func loop(dev *hci.HCI, s *gatt.Server, mtu int) {
 			if err != io.EOF {
 				log.Printf("can't accept: %s", err)
 			}
-			return
+			log.Printf("go-ble workaround: sleep 15 seconds and retry. Error: %s", err)
+			time.Sleep(15 * time.Second)
+			continue
 		}
 
 		// Initialize the per-connection cccd values.
