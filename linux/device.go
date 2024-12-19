@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"time"
 
 	"github.com/go-ble/ble"
 	"github.com/go-ble/ble/linux/att"
@@ -97,7 +98,9 @@ func loop(dev *hci.HCI, s *gatt.Server, mtu int) {
 			if err != io.EOF {
 				log.Printf("can't accept: %s", err)
 			}
-			return
+			log.Printf("go-ble workaround: sleep 15 seconds and retry. Error: %s", err)
+			time.Sleep(15 * time.Second)
+			continue
 		}
 
 		// Initialize the per-connection cccd values.
@@ -246,6 +249,8 @@ func (d *Device) Scan(ctx context.Context, allowDup bool, h ble.AdvHandler) erro
 	case <-ctx.Done():
 	case <-d.HCI.Done():
 		return d.HCI.Error()
+	case <-d.HCI.Cancel():
+		return d.HCI.Error()
 	}
 	d.HCI.StopScanning()
 	return ctx.Err()
@@ -259,7 +264,13 @@ func (d *Device) ExtendedScan(ctx context.Context, allowDup bool, h ble.Extended
 	if err := d.HCI.ExtendedScan(allowDup); err != nil {
 		return err
 	}
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+	case <-d.HCI.Done():
+		return d.HCI.Error()
+	case <-d.HCI.Cancel():
+		return d.HCI.Error()
+	}
 	d.HCI.StopExtendedScan()
 	return ctx.Err()
 }
